@@ -7,7 +7,9 @@ export default defineAppConfig({
     'pages/publish/index',
     'pages/user-detail/index',
     'pages/chat-detail/index',
-    'pages/order-detail/index'
+    'pages/order-detail/index',
+    'pages/emergency-contacts/index',
+    'pages/blacklist/index'
   ],
   window: {
     backgroundTextStyle: 'light',

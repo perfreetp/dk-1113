@@ -3,19 +3,14 @@ import { View, Text, Image, Input, Button, ScrollView } from '@tarojs/components
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { mockUsers, currentUser } from '@/data/mock';
-import type { Message } from '@/types';
+import type { Message, User } from '@/types';
 
 const ChatDetailPage: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', senderId: '2', content: '你好！我是阿杰，很高兴认识你~', type: 'text', createdAt: '2024-01-15 10:30', isRead: true },
-    { id: '2', senderId: '1', content: '你好！期待今天下午见面~', type: 'text', createdAt: '2024-01-15 10:32', isRead: true },
-    { id: '3', senderId: '2', content: '好的，下午见！', type: 'text', createdAt: '2024-01-15 10:35', isRead: false }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [targetUser, setTargetUser] = useState<User | null>(null);
   const scrollRef = useRef<ScrollView>(null);
-
-  const targetUser = mockUsers[1];
 
   const quickActions = [
     { text: '邀请散步', action: 'invite_walk' },
@@ -25,6 +20,25 @@ const ChatDetailPage: React.FC = () => {
     { text: '分享路线', action: 'share_route' },
     { text: '提醒对方', action: 'remind' }
   ];
+
+  useEffect(() => {
+    const pages = Taro.getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    const options = (currentPage as any)?.options || {};
+    const userId = options.id || '2';
+    
+    const foundUser = mockUsers.find(u => u.id === userId);
+    if (foundUser) {
+      setTargetUser(foundUser);
+      setMessages([
+        { id: '1', senderId: userId, content: `你好！我是${foundUser.name}，很高兴认识你~`, type: 'text', createdAt: '2024-01-15 10:30', isRead: true },
+        { id: '2', senderId: '1', content: '你好！期待见面~', type: 'text', createdAt: '2024-01-15 10:32', isRead: true },
+        { id: '3', senderId: userId, content: '好的，期待与你相见！', type: 'text', createdAt: '2024-01-15 10:35', isRead: false }
+      ]);
+    } else {
+      setTargetUser(mockUsers[1]);
+    }
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -40,7 +54,7 @@ const ChatDetailPage: React.FC = () => {
   };
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !targetUser) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -80,6 +94,8 @@ const ChatDetailPage: React.FC = () => {
   };
 
   const handleQuickAction = (action: string) => {
+    if (!targetUser) return;
+    
     let message = '';
     switch (action) {
       case 'invite_walk':
@@ -95,7 +111,7 @@ const ChatDetailPage: React.FC = () => {
         message = '确认一下，今天下午2点在星巴克见可以吗？';
         break;
       case 'share_route':
-        Taro.showToast({ title: '路线分享功能开发中', icon: 'none' });
+        handleShareRoute();
         return;
       case 'remind':
         message = '记得我们今天下午的见面哦！';
@@ -106,6 +122,27 @@ const ChatDetailPage: React.FC = () => {
     setInputValue(message);
     setShowQuickActions(false);
   };
+
+  const handleShareRoute = () => {
+    Taro.showModal({
+      title: '分享路线',
+      content: '起点：当前位置\n终点：星巴克(国贸店)\n\n是否发送路线给对方？',
+      confirmText: '发送',
+      success: (res) => {
+        if (res.confirm) {
+          Taro.showToast({ title: '路线已分享', icon: 'success' });
+        }
+      }
+    });
+  };
+
+  if (!targetUser) {
+    return (
+      <View className={styles.page}>
+        <Text>加载中...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className={styles.page}>

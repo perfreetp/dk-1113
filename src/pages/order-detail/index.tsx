@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
@@ -6,7 +6,7 @@ import { mockOrders } from '@/data/mock';
 import type { Order } from '@/types';
 
 const OrderDetailPage: React.FC = () => {
-  const [order] = useState<Order>(mockOrders[0]);
+  const [order, setOrder] = useState<Order | null>(null);
 
   const typeIcons: Record<string, string> = {
     '散步': '🚶',
@@ -24,6 +24,34 @@ const OrderDetailPage: React.FC = () => {
     'completed': '已完成',
     'cancelled': '已取消'
   };
+
+  useEffect(() => {
+    const pages = Taro.getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    const options = (currentPage as any)?.options || {};
+    const orderId = options.id || '1';
+    
+    const foundOrder = mockOrders.find(o => o.id === orderId);
+    if (foundOrder) {
+      setOrder(foundOrder);
+    } else {
+      const storedOrders = Taro.getStorageSync('orders') || [];
+      const storedOrder = storedOrders.find((o: Order) => o.id === orderId);
+      if (storedOrder) {
+        setOrder(storedOrder);
+      } else {
+        setOrder(mockOrders[0]);
+      }
+    }
+  }, []);
+
+  if (!order) {
+    return (
+      <View className={styles.page}>
+        <Text>加载中...</Text>
+      </View>
+    );
+  }
 
   const handleContact = () => {
     if (order.companion) {
@@ -44,7 +72,21 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleShareRoute = () => {
-    Taro.showToast({ title: '路线分享功能开发中', icon: 'none' });
+    if (order.meetingType === 'online') {
+      Taro.showToast({ title: '线上订单无需分享路线', icon: 'none' });
+      return;
+    }
+    
+    Taro.showModal({
+      title: '分享路线',
+      content: `起点：当前位置\n终点：${order.location}\n\n是否发送路线给对方？`,
+      confirmText: '发送',
+      success: (res) => {
+        if (res.confirm) {
+          Taro.showToast({ title: '路线已分享', icon: 'success' });
+        }
+      }
+    });
   };
 
   const handleEndOrder = () => {
@@ -60,14 +102,39 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleEmergency = () => {
+    const emergencyContacts = Taro.getStorageSync('emergencyContacts') || [];
+    if (emergencyContacts.length === 0) {
+      Taro.showModal({
+        title: '紧急联系',
+        content: '您还未添加紧急联系人，请先添加',
+        confirmText: '去添加',
+        success: (res) => {
+          if (res.confirm) {
+            Taro.navigateTo({ url: '/pages/emergency-contacts/index' });
+          }
+        }
+      });
+      return;
+    }
+
+    const contactNames = emergencyContacts.map((c: any) => c.name).join('、');
     Taro.showModal({
       title: '紧急联系',
-      content: '是否需要联系紧急联系人或报警？',
-      confirmText: '联系紧急联系人',
+      content: `选择要联系的紧急联系人：\n${contactNames}`,
+      confirmText: '联系第一个',
       cancelText: '取消',
       success: (res) => {
-        if (res.confirm) {
-          Taro.showToast({ title: '已通知紧急联系人', icon: 'success' });
+        if (res.confirm && emergencyContacts.length > 0) {
+          const contact = emergencyContacts[0];
+          Taro.showModal({
+            title: '联系紧急联系人',
+            content: `正在拨打 ${contact.name} 的电话：${contact.phone}`,
+            showCancel: false
+          });
+          setTimeout(() => {
+            Taro.hideModal();
+            Taro.showToast({ title: '已通知紧急联系人', icon: 'success' });
+          }, 2000);
         }
       }
     });

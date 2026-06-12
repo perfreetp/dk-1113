@@ -15,8 +15,8 @@ const ProfilePage: React.FC = () => {
   ];
 
   const safeItems = [
-    { icon: '🚫', text: '黑名单', url: '' },
-    { icon: '🛟', text: '紧急联系人', url: '' },
+    { icon: '🚫', text: '黑名单', url: '/pages/blacklist/index' },
+    { icon: '🛟', text: '紧急联系人', url: '/pages/emergency-contacts/index' },
     { icon: '⚠️', text: '举报中心', url: '' },
     { icon: '🔒', text: '账号安全', url: '' },
     { icon: '📱', text: '在线模式设置', url: '' }

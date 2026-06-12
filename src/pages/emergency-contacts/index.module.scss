@@ -1,0 +1,240 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 140rpx;
+}
+
+.section {
+  margin: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.contactList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  position: relative;
+}
+
+.contactAvatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-round;
+  background-color: $color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .avatarText {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-white;
+  }
+}
+
+.contactInfo {
+  flex: 1;
+}
+
+.contactName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.contactPhone {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.contactRelation {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
+
+.deleteBtn {
+  @include button-reset;
+  width: $button-height-md;
+  height: $button-height-md;
+  color: $color-error;
+  
+  .btnIcon {
+    font-size: $font-size-lg;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xl * 3;
+  
+  .emptyIcon {
+    font-size: 120rpx;
+    margin-bottom: $spacing-md;
+  }
+  
+  .emptyText {
+    font-size: $font-size-md;
+    color: $color-text-tertiary;
+  }
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background-color: $color-bg-card;
+  box-shadow: $shadow-float;
+}
+
+.addBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background-color: $color-primary;
+  border-radius: $radius-button;
+  
+  .btnText {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-white;
+  }
+  
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.popup {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+  padding: $spacing-lg;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
+  box-shadow: $shadow-popup;
+}
+
+.popupTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.formGroup {
+  margin-bottom: $spacing-md;
+}
+
+.formLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.formInput {
+  width: 100%;
+  height: $button-height-md;
+  padding: 0 $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.relationOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.relationItem {
+  @include button-reset;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-button;
+  border: 2rpx solid transparent;
+  
+  .relationText {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+  
+  &.active {
+    background-color: rgba($color-primary, 0.1);
+    border-color: $color-primary;
+    
+    .relationText {
+      color: $color-primary;
+    }
+  }
+}
+
+.popupActions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.popupBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  
+  &.cancel {
+    background-color: $color-bg-page;
+    
+    .btnText {
+      color: $color-text-secondary;
+    }
+  }
+  
+  &.confirm {
+    background-color: $color-primary;
+    
+    .btnText {
+      color: $color-text-white;
+    }
+  }
+  
+  .btnText {
+    font-size: $font-size-md;
+  }
+}
+
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}

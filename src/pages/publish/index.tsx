@@ -38,10 +38,65 @@ const PublishPage: React.FC = () => {
     Taro.showLoading({ title: '发布中...' });
     
     setTimeout(() => {
+      const newOrder = {
+        id: Date.now().toString(),
+        type: selectedType,
+        title: `${selectedType}陪伴`,
+        duration: duration,
+        location: location || '附近',
+        budget: parseInt(budget),
+        meetingType: meetingType,
+        status: 'pending',
+        createdAt: new Date().toLocaleString('zh-CN', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace(/\//g, '-'),
+        startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleString('zh-CN', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace(/\//g, '-'),
+        endTime: new Date(Date.now() + (2 + duration) * 60 * 60 * 1000).toLocaleString('zh-CN', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace(/\//g, '-'),
+        user: {
+          id: '1',
+          name: '我',
+          avatar: '',
+          age: 0,
+          gender: 'female',
+          location: '',
+          tags: [],
+          rating: 0,
+          reviewCount: 0,
+          isVerified: false,
+          isOnline: false,
+          availableTime: [],
+          skills: [],
+          bio: '',
+          hourlyRate: 0
+        },
+        companion: undefined,
+        rating: undefined,
+        review: undefined
+      };
+
+      const existingOrders = Taro.getStorageSync('orders') || [];
+      Taro.setStorageSync('orders', [...existingOrders, newOrder]);
+
       Taro.hideLoading();
       Taro.showToast({ title: '发布成功', icon: 'success' });
       setTimeout(() => {
-        Taro.navigateBack();
+        Taro.switchTab({ url: '/pages/order/index' });
       }, 1500);
     }, 1000);
   };

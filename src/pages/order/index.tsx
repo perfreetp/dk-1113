@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
@@ -7,7 +7,7 @@ import type { Order } from '@/types';
 
 const OrderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('all');
-  const [orders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const tabs = [
     { key: 'all', label: '全部' },
@@ -34,6 +34,15 @@ const OrderPage: React.FC = () => {
     'cancelled': '已取消'
   };
 
+  useEffect(() => {
+    const storedOrders = Taro.getStorageSync('orders') || [];
+    const allOrders = [...mockOrders, ...storedOrders];
+    const uniqueOrders = allOrders.filter((order, index, self) => 
+      index === self.findIndex((o) => o.id === order.id)
+    );
+    setOrders(uniqueOrders);
+  }, []);
+
   const filteredOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
 
   const handleOrderTap = (order: Order) => {
@@ -48,6 +57,21 @@ const OrderPage: React.FC = () => {
       success: (res) => {
         if (res.confirm) {
           Taro.showToast({ title: '评价成功', icon: 'success' });
+        }
+      }
+    });
+  };
+
+  const handleCancelOrder = (order: Order) => {
+    Taro.showModal({
+      title: '取消订单',
+      content: '确认取消该订单？',
+      success: (res) => {
+        if (res.confirm) {
+          const updatedOrders = orders.filter(o => o.id !== order.id);
+          setOrders(updatedOrders);
+          Taro.setStorageSync('orders', updatedOrders.filter(o => !mockOrders.find(mo => mo.id === o.id)));
+          Taro.showToast({ title: '订单已取消', icon: 'success' });
         }
       }
     });
@@ -122,7 +146,7 @@ const OrderPage: React.FC = () => {
                     </Button>
                   )}
                   {order.status === 'pending' && (
-                    <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={(e) => e.stopPropagation()}>
+                    <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={(e) => { e.stopPropagation(); handleCancelOrder(order); }}>
                       <Text className={styles.btnText}>取消订单</Text>
                     </Button>
                   )}

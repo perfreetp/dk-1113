@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
@@ -6,7 +6,7 @@ import { mockUsers } from '@/data/mock';
 import type { User } from '@/types';
 
 const UserDetailPage: React.FC = () => {
-  const [user] = useState<User>(mockUsers[1]);
+  const [user, setUser] = useState<User | null>(null);
   const [showReportPopup, setShowReportPopup] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string>('');
 
@@ -17,6 +17,28 @@ const UserDetailPage: React.FC = () => {
     { value: 'scam', label: '诈骗行为' },
     { value: 'other', label: '其他' }
   ];
+
+  useEffect(() => {
+    const pages = Taro.getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    const options = (currentPage as any)?.options || {};
+    const userId = options.id || '1';
+    
+    const foundUser = mockUsers.find(u => u.id === userId);
+    if (foundUser) {
+      setUser(foundUser);
+    } else {
+      setUser(mockUsers[0]);
+    }
+  }, []);
+
+  if (!user) {
+    return (
+      <View className={styles.page}>
+        <Text>加载中...</Text>
+      </View>
+    );
+  }
 
   const handleChat = () => {
     Taro.navigateTo({ url: `/pages/chat-detail/index?id=${user.id}` });
