@@ -1,0 +1,260 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 120rpx;
+}
+
+.header {
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: 0 0 $radius-xl $radius-xl;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-xs;
+}
+
+.subtitle {
+  font-size: $font-size-md;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.publishBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-secondary 0%, $color-secondary-light 100%);
+  border-radius: $radius-button;
+  margin-top: $spacing-xl;
+  
+  .btnText {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+  
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.typeSection {
+  padding: $spacing-lg;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.typeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.typeItem {
+  @include button-reset;
+  width: calc((100% - 5 * #{$spacing-sm}) / 6);
+  padding: $spacing-md 0;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  flex-direction: column;
+  gap: $spacing-xs;
+  box-shadow: $shadow-card;
+  
+  .typeIcon {
+    font-size: 48rpx;
+  }
+  
+  .typeName {
+    font-size: $font-size-xs;
+    color: $color-text-secondary;
+  }
+  
+  &.active {
+    background-color: $color-primary;
+    
+    .typeName {
+      color: $color-text-white;
+    }
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.userSection {
+  padding: 0 $spacing-lg;
+}
+
+.userCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  
+  &:active {
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+.userHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: $radius-round;
+}
+
+.userInfo {
+  flex: 1;
+}
+
+.userName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.verifiedBadge {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.onlineBadge {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  background-color: $color-success;
+  margin-left: $spacing-xs;
+}
+
+.userMeta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: $spacing-xs;
+  
+  .metaItem {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    
+    &.location {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+    }
+  }
+}
+
+.userTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.tag {
+  padding: $spacing-xs $spacing-sm;
+  background-color: rgba($color-primary, 0.1);
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.userBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  
+  .star {
+    font-size: $font-size-sm;
+    color: $color-secondary;
+  }
+  
+  .ratingNum {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+  
+  .reviewCount {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  
+  .priceNum {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+  }
+  
+  .priceUnit {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+}
+
+.inviteBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-lg;
+  background-color: $color-primary;
+  border-radius: $radius-button;
+  
+  .btnText {
+    font-size: $font-size-sm;
+    color: $color-text-white;
+  }
+  
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xl * 2;
+  
+  .emptyIcon {
+    font-size: 120rpx;
+    margin-bottom: $spacing-md;
+  }
+  
+  .emptyText {
+    font-size: $font-size-md;
+    color: $color-text-tertiary;
+  }
+}

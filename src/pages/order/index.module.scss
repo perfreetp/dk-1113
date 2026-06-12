@@ -1,0 +1,217 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+}
+
+.tabBar {
+  display: flex;
+  background-color: $color-bg-card;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-border;
+}
+
+.tabItem {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-sm 0;
+  
+  .tabText {
+    font-size: $font-size-md;
+    color: $color-text-secondary;
+  }
+  
+  &.active {
+    .tabText {
+      color: $color-primary;
+      font-weight: $font-weight-semibold;
+    }
+    
+    &::after {
+      content: '';
+      display: block;
+      width: 48rpx;
+      height: 4rpx;
+      background-color: $color-primary;
+      border-radius: $radius-round;
+      margin: $spacing-xs auto 0;
+    }
+  }
+}
+
+.orderList {
+  padding: $spacing-md;
+}
+
+.orderCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.orderType {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  
+  .typeIcon {
+    font-size: $font-size-lg;
+  }
+  
+  .typeName {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+}
+
+.orderStatus {
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+.orderContent {
+  margin-bottom: $spacing-md;
+}
+
+.orderTitle {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.orderMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  
+  .metaItem {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+}
+
+.orderPartner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+  margin-bottom: $spacing-md;
+}
+
+.partnerAvatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+}
+
+.partnerInfo {
+  flex: 1;
+}
+
+.partnerName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.partnerRating {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.orderFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orderPrice {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  
+  .priceLabel {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+  
+  .priceNum {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+  }
+}
+
+.orderActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.actionBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-button;
+  border: 1rpx solid $color-primary;
+  
+  .btnText {
+    font-size: $font-size-sm;
+    color: $color-primary;
+  }
+  
+  &.primary {
+    background-color: $color-primary;
+    
+    .btnText {
+      color: $color-text-white;
+    }
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xl * 3;
+  
+  .emptyIcon {
+    font-size: 120rpx;
+    margin-bottom: $spacing-md;
+  }
+  
+  .emptyText {
+    font-size: $font-size-md;
+    color: $color-text-tertiary;
+  }
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background-color: rgba($color-warning, 0.1);
+  border-radius: $radius-sm;
+  
+  .countdownText {
+    font-size: $font-size-xs;
+    color: $color-warning;
+  }
+}

@@ -1,0 +1,321 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 140rpx;
+}
+
+.userHeader {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-xl $spacing-lg;
+  padding-top: calc(#{$spacing-xl} + env(safe-area-inset-top));
+  border-radius: 0 0 $radius-xl $radius-xl;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.avatar {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: $radius-round;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+}
+
+.userDetail {
+  flex: 1;
+}
+
+.userName {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.verifiedBadge {
+  font-size: $font-size-xs;
+  color: $color-secondary;
+}
+
+.onlineBadge {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: $radius-round;
+  background-color: $color-success;
+  margin-left: $spacing-xs;
+}
+
+.userMeta {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+  
+  .metaItem {
+    font-size: $font-size-sm;
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.userTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-md;
+}
+
+.tag {
+  padding: $spacing-xs $spacing-sm;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+}
+
+.section {
+  margin: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.bioText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+.infoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  width: calc((100% - #{$spacing-sm}) / 2);
+}
+
+.infoLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.infoValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.ratingSection {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.starIcon {
+  font-size: $font-size-xl;
+  color: $color-secondary;
+}
+
+.ratingValue {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.reviewCount {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.availableTime {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.timeItem {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  padding: $spacing-sm;
+  background-color: rgba($color-success, 0.1);
+  border-radius: $radius-sm;
+}
+
+.skillTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.skillTag {
+  padding: $spacing-xs $spacing-sm;
+  background-color: rgba($color-info, 0.1);
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  color: $color-info;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background-color: $color-bg-card;
+  box-shadow: $shadow-float;
+  display: flex;
+  gap: $spacing-md;
+}
+
+.actionBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-primary;
+  
+  .btnText {
+    font-size: $font-size-md;
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+  
+  &.primary {
+    background-color: $color-primary;
+    
+    .btnText {
+      color: $color-text-white;
+    }
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.reportBtn {
+  @include button-reset;
+  width: $button-height-lg;
+  height: $button-height-lg;
+  background-color: $color-bg-page;
+  border-radius: $radius-round;
+  
+  .btnIcon {
+    font-size: $font-size-xl;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.popup {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+  padding: $spacing-lg;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
+  box-shadow: $shadow-popup;
+}
+
+.popupTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.reportOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.reportItem {
+  @include button-reset;
+  padding: $spacing-md $spacing-lg;
+  background-color: $color-bg-page;
+  border-radius: $radius-lg;
+  border: 2rpx solid transparent;
+  
+  .reportText {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+  
+  &.active {
+    background-color: rgba($color-error, 0.1);
+    border-color: $color-error;
+    
+    .reportText {
+      color: $color-error;
+    }
+  }
+}
+
+.popupActions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+.popupBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-md;
+  border-radius: $radius-button;
+  
+  &.cancel {
+    background-color: $color-bg-page;
+    
+    .btnText {
+      color: $color-text-secondary;
+    }
+  }
+  
+  &.confirm {
+    background-color: $color-error;
+    
+    .btnText {
+      color: $color-text-white;
+    }
+  }
+  
+  .btnText {
+    font-size: $font-size-md;
+  }
+}
+
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,210 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  display: flex;
+  flex-direction: column;
+}
+
+.messageList {
+  flex: 1;
+  padding: $spacing-md;
+  padding-bottom: 160rpx;
+}
+
+.messageItem {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  
+  &.self {
+    flex-direction: row-reverse;
+  }
+}
+
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  flex-shrink: 0;
+}
+
+.messageContent {
+  max-width: 70%;
+}
+
+.messageBubble {
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 12rpx solid transparent;
+  }
+}
+
+.messageItem:not(.self) {
+  .messageBubble {
+    background-color: $color-bg-card;
+    border-radius: $radius-lg $radius-lg $radius-lg 0;
+    
+    &::before {
+      left: -24rpx;
+      top: 16rpx;
+      border-right-color: $color-bg-card;
+    }
+  }
+}
+
+.messageItem.self {
+  .messageBubble {
+    background-color: $color-primary;
+    border-radius: $radius-lg $radius-lg 0 $radius-lg;
+    
+    &::before {
+      right: -24rpx;
+      top: 16rpx;
+      border-left-color: $color-primary;
+    }
+  }
+}
+
+.messageText {
+  font-size: $font-size-md;
+  line-height: $line-height-loose;
+}
+
+.messageItem:not(.self) .messageText {
+  color: $color-text-primary;
+}
+
+.messageItem.self .messageText {
+  color: $color-text-white;
+}
+
+.messageTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+  text-align: right;
+}
+
+.systemMessage {
+  text-align: center;
+  margin: $spacing-md 0;
+  
+  .systemText {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: $spacing-xs $spacing-md;
+    border-radius: $radius-round;
+  }
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background-color: $color-bg-card;
+  box-shadow: $shadow-float;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.inputWrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: $color-bg-page;
+  border-radius: $radius-button;
+  padding: 0 $spacing-md;
+}
+
+.input {
+  flex: 1;
+  height: $button-height-md;
+  font-size: $font-size-md;
+}
+
+.sendBtn {
+  @include button-reset;
+  width: $button-height-lg;
+  height: $button-height-lg;
+  background-color: $color-primary;
+  border-radius: $radius-round;
+  
+  .btnIcon {
+    font-size: $font-size-xl;
+    color: $color-text-white;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+  
+  &.disabled {
+    background-color: $color-text-disabled;
+  }
+}
+
+.actionBtn {
+  @include button-reset;
+  width: $button-height-md;
+  height: $button-height-md;
+  
+  .btnIcon {
+    font-size: $font-size-lg;
+    color: $color-text-secondary;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.quickActions {
+  position: fixed;
+  bottom: 140rpx;
+  left: $spacing-lg;
+  right: $spacing-lg;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-float;
+}
+
+.actionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.actionItem {
+  @include button-reset;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-button;
+  
+  .actionText {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+  
+  &:active {
+    background-color: rgba($color-primary, 0.1);
+    
+    .actionText {
+      color: $color-primary;
+    }
+  }
+}
