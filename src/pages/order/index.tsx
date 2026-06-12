@@ -36,6 +36,20 @@ const OrderPage: React.FC = () => {
     'cancelled': '已取消'
   };
 
+  const saveOrderToStorage = (updatedOrder: Order) => {
+    const storedOrders = Taro.getStorageSync('orders') || [];
+    const orderIndex = storedOrders.findIndex((o: Order) => o.id === updatedOrder.id);
+    
+    if (orderIndex >= 0) {
+      storedOrders[orderIndex] = updatedOrder;
+    } else {
+      storedOrders.push(updatedOrder);
+    }
+    
+    Taro.setStorageSync('orders', storedOrders);
+    loadOrders();
+  };
+
   const loadOrders = () => {
     const storedOrders = Taro.getStorageSync('orders') || [];
     const storedOrderIds = new Set(storedOrders.map((o: Order) => o.id));
@@ -83,12 +97,12 @@ const OrderPage: React.FC = () => {
       placeholderText: '请输入评价内容',
       success: (res) => {
         if (res.confirm) {
-          const storedOrders = Taro.getStorageSync('orders') || [];
-          const updatedOrders = storedOrders.map((o: Order) => 
-            o.id === order.id ? { ...o, rating: 5, review: res.content || '满意' } : o
-          );
-          Taro.setStorageSync('orders', updatedOrders);
-          loadOrders();
+          const updatedOrder: Order = {
+            ...order,
+            rating: 5,
+            review: res.content || '满意'
+          };
+          saveOrderToStorage(updatedOrder);
           Taro.showToast({ title: '评价成功', icon: 'success' });
         }
       }
@@ -101,12 +115,11 @@ const OrderPage: React.FC = () => {
       content: '确认取消该订单？',
       success: (res) => {
         if (res.confirm) {
-          const storedOrders = Taro.getStorageSync('orders') || [];
-          const updatedOrders = storedOrders.map((o: Order) => 
-            o.id === order.id ? { ...o, status: 'cancelled' } : o
-          );
-          Taro.setStorageSync('orders', updatedOrders);
-          loadOrders();
+          const updatedOrder: Order = {
+            ...order,
+            status: 'cancelled'
+          };
+          saveOrderToStorage(updatedOrder);
           Taro.showToast({ title: '订单已取消', icon: 'success' });
         }
       }
@@ -180,6 +193,11 @@ const OrderPage: React.FC = () => {
                     <Button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleRate(order); }}>
                       <Text className={styles.btnText}>评价</Text>
                     </Button>
+                  )}
+                  {order.status === 'completed' && order.rating && (
+                    <View className={styles.reviewBadge}>
+                      <Text className={styles.reviewText}>★{order.rating} {order.review?.slice(0, 10)}...</Text>
+                    </View>
                   )}
                   {order.status === 'pending' && (
                     <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={(e) => { e.stopPropagation(); handleCancelOrder(order); }}>

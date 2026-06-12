@@ -16,6 +16,10 @@ const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [showRouteCard, setShowRouteCard] = useState(false);
+  const [showSettlementCard, setShowSettlementCard] = useState(false);
+  const [reminderTime, setReminderTime] = useState('');
+  const [showReminderPopup, setShowReminderPopup] = useState(false);
+  const [reminderSet, setReminderSet] = useState(false);
 
   const currentUserId = '1';
 
@@ -37,6 +41,17 @@ const OrderDetailPage: React.FC = () => {
     'cancelled': '已取消'
   };
 
+  const getAvailableUsers = () => {
+    const blacklist = Taro.getStorageSync('blacklist') || [];
+    const blacklistedIds = new Set(blacklist.map((item: any) => item.userId));
+    
+    return mockUsers.filter(u => 
+      u.id !== currentUserId && 
+      u.isOnline && 
+      !blacklistedIds.has(u.id)
+    );
+  };
+
   const refreshOrder = () => {
     const pages = Taro.getCurrentPages();
     const currentPage = pages[pages.length - 1];
@@ -49,21 +64,24 @@ const OrderDetailPage: React.FC = () => {
     if (foundOrder) {
       setOrder(foundOrder);
       loadCandidates(foundOrder.id);
+      setShowSettlementCard(foundOrder.status === 'completed');
     } else {
       const mockOrder = mockOrders.find(o => o.id === orderId);
       if (mockOrder) {
         setOrder(mockOrder);
         loadCandidates(mockOrder.id);
+        setShowSettlementCard(mockOrder.status === 'completed');
       } else {
         setOrder(mockOrders[0]);
         loadCandidates(mockOrders[0].id);
+        setShowSettlementCard(mockOrders[0].status === 'completed');
       }
     }
   };
 
   const loadCandidates = (orderId: string) => {
     const storedCandidates = Taro.getStorageSync(`candidates_${orderId}`) || [];
-    const availableUsers = mockUsers.filter(u => u.id !== currentUserId);
+    const availableUsers = getAvailableUsers();
     
     const candidateList: Candidate[] = availableUsers.map(user => {
       const stored = storedCandidates.find((c: any) => c.userId === user.id);
@@ -79,6 +97,12 @@ const OrderDetailPage: React.FC = () => {
 
   useEffect(() => {
     refreshOrder();
+
+    const storedReminder = Taro.getStorageSync(`reminder_${order?.id}`);
+    if (storedReminder) {
+      setReminderTime(storedReminder);
+      setReminderSet(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -92,6 +116,35 @@ const OrderDetailPage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (reminderSet && order && order.status !== 'confirmed' && order.status !== 'inProgress') {
+      const reminderTimeObj = new Date(reminderTime);
+      const now = new Date();
+      const diff = reminderTimeObj.getTime() - now.getTime();
+      
+      if (diff > 0) {
+        const timer = setTimeout(() => {
+          Taro.showModal({
+            title: '见面提醒',
+            content: `您有一个订单即将开始：${order.title}\n时间：${order.startTime}`,
+            confirmText: '去确认',
+            success: (res) => {
+              if (res.confirm) {
+                const updatedOrder: Order = {
+                  ...order,
+                  status: 'confirmed'
+                };
+                saveOrder(updatedOrder);
+              }
+            }
+          });
+        }, diff);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [reminderSet, reminderTime, order]);
+
   if (!order) {
     return (
       <View className={styles.page}>
@@ -101,6 +154,7 @@ const OrderDetailPage: React.FC = () => {
   }
 
   const hasAcceptedCandidate = candidates.some(c => c.accepted);
+  const availableUsers = getAvailableUsers();
 
   const saveOrder = (updatedOrder: Order) => {
     const storedOrders = Taro.getStorageSync('orders') || [];
@@ -114,6 +168,10 @@ const OrderDetailPage: React.FC = () => {
     
     Taro.setStorageSync('orders', storedOrders);
     setOrder(updatedOrder);
+    
+    if (updatedOrder.status === 'completed') {
+      setShowSettlementCard(true);
+    }
   };
 
   const saveCandidates = (orderId: string, updatedCandidates: Candidate[]) => {
@@ -126,8 +184,28 @@ const OrderDetailPage: React.FC = () => {
     setCandidates(updatedCandidates);
   };
 
+  const createChatSession = (userId: string) => {
+    const chats = Taro.getStorageSync('chats') || [];
+    const user = mockUsers.find(u => u.id === userId);
+    
+    if (user && !chats.some((c: any) => c.userId === userId)) {
+      const newChat = {
+        id: `chat_${userId}`,
+        userId,
+        userName: user.name,
+        userAvatar: user.avatar,
+        lastMessage: '订单已匹配，开始聊天吧！',
+        lastTime: new Date().toLocaleString('zh-CN'),
+        unreadCount: 0
+      };
+      chats.push(newChat);
+      Taro.setStorageSync('chats', chats);
+    }
+  };
+
   const handleContact = () => {
     if (order.companion) {
+      createChatSession(order.companion.id);
       Taro.navigateTo({ url: `/pages/chat-detail/index?id=${order.companion.id}` });
     }
   };
@@ -162,16 +240,15 @@ const OrderDetailPage: React.FC = () => {
     };
     
     saveOrder(updatedOrder);
+    createChatSession(user.id);
     Taro.showToast({ title: `${user.name} 已接受邀请`, icon: 'success' });
   };
 
   const handleAcceptOrder = () => {
     if (order.status !== 'pending') return;
     
-    const availableUsers = mockUsers.filter(u => u.id !== currentUserId);
-    
     if (availableUsers.length === 0) {
-      Taro.showToast({ title: '暂无可用陪伴者', icon: 'none' });
+      Taro.showToast({ title: '暂时无人可接', icon: 'none' });
       return;
     }
     
@@ -191,6 +268,7 @@ const OrderDetailPage: React.FC = () => {
     };
     
     saveOrder(updatedOrder);
+    createChatSession(randomCompanion.id);
     Taro.showToast({ title: `已匹配陪伴者 ${randomCompanion.name}`, icon: 'success' });
   };
 
@@ -234,6 +312,7 @@ const OrderDetailPage: React.FC = () => {
 
   const handleStartOnlineChat = () => {
     if (order.companion) {
+      createChatSession(order.companion.id);
       Taro.navigateTo({ url: `/pages/chat-detail/index?id=${order.companion.id}` });
     }
   };
@@ -305,6 +384,26 @@ const OrderDetailPage: React.FC = () => {
     });
   };
 
+  const handleSetReminder = () => {
+    setShowReminderPopup(true);
+  };
+
+  const handleConfirmReminder = () => {
+    if (!reminderTime) {
+      Taro.showToast({ title: '请选择提醒时间', icon: 'none' });
+      return;
+    }
+    
+    Taro.setStorageSync(`reminder_${order.id}`, reminderTime);
+    setReminderSet(true);
+    setShowReminderPopup(false);
+    Taro.showToast({ title: '提醒已设置', icon: 'success' });
+  };
+
+  const handleCloseSettlement = () => {
+    setShowSettlementCard(false);
+  };
+
   return (
     <View className={styles.page}>
       <View className={styles.orderHeader}>
@@ -350,33 +449,43 @@ const OrderDetailPage: React.FC = () => {
       {order.status === 'pending' && !order.companion && (
         <View className={styles.section}>
           <Text className={styles.sectionTitle}>候选陪伴者</Text>
-          <View className={styles.candidateList}>
-            {candidates.map((candidate) => (
-              <View key={candidate.user.id} className={styles.candidateItem}>
-                <Image className={styles.candidateAvatar} src={candidate.user.avatar} mode="aspectFill" />
-                <View className={styles.candidateInfo}>
-                  <Text className={styles.candidateName}>{candidate.user.name}</Text>
-                  <Text className={styles.candidateMeta}>★{candidate.user.rating} | ¥{candidate.user.hourlyRate}/小时</Text>
-                </View>
-                {candidate.accepted ? (
-                  <Text className={styles.acceptedBadge}>已接受</Text>
-                ) : hasAcceptedCandidate ? (
-                  <Text className={styles.disabledBadge}>已有人接单</Text>
-                ) : candidate.invited ? (
-                  <Button className={styles.acceptBtn} onClick={() => handleAcceptInvitation(candidate.user)}>
-                    <Text className={styles.btnText}>接受邀请</Text>
-                  </Button>
-                ) : (
-                  <Button className={styles.inviteBtn} onClick={() => handleInviteCandidate(candidate.user)}>
-                    <Text className={styles.btnText}>邀请</Text>
-                  </Button>
-                )}
+          {availableUsers.length === 0 ? (
+            <View className={styles.emptyState}>
+              <Text className={styles.emptyIcon}>🔄</Text>
+              <Text className={styles.emptyText}>暂时无人可接</Text>
+              <Text className={styles.emptyTip}>当前没有在线且未被拉黑的陪伴者</Text>
+            </View>
+          ) : (
+            <>
+              <View className={styles.candidateList}>
+                {candidates.map((candidate) => (
+                  <View key={candidate.user.id} className={styles.candidateItem}>
+                    <Image className={styles.candidateAvatar} src={candidate.user.avatar} mode="aspectFill" />
+                    <View className={styles.candidateInfo}>
+                      <Text className={styles.candidateName}>{candidate.user.name}</Text>
+                      <Text className={styles.candidateMeta}>★{candidate.user.rating} | ¥{candidate.user.hourlyRate}/小时</Text>
+                    </View>
+                    {candidate.accepted ? (
+                      <Text className={styles.acceptedBadge}>已接受</Text>
+                    ) : hasAcceptedCandidate ? (
+                      <Text className={styles.disabledBadge}>已有人接单</Text>
+                    ) : candidate.invited ? (
+                      <Button className={styles.acceptBtn} onClick={() => handleAcceptInvitation(candidate.user)}>
+                        <Text className={styles.btnText}>接受邀请</Text>
+                      </Button>
+                    ) : (
+                      <Button className={styles.inviteBtn} onClick={() => handleInviteCandidate(candidate.user)}>
+                        <Text className={styles.btnText}>邀请</Text>
+                      </Button>
+                    )}
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <Button className={styles.matchBtn} onClick={handleAcceptOrder}>
-            <Text className={styles.btnText}>自动匹配陪伴者</Text>
-          </Button>
+              <Button className={styles.matchBtn} onClick={handleAcceptOrder}>
+                <Text className={styles.btnText}>自动匹配陪伴者</Text>
+              </Button>
+            </>
+          )}
         </View>
       )}
 
@@ -458,9 +567,16 @@ const OrderDetailPage: React.FC = () => {
           </>
         )}
         {order.status === 'accepted' && (
-          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleConfirmMeeting}>
-            <Text className={styles.btnText}>确认见面</Text>
-          </Button>
+          <>
+            <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleConfirmMeeting}>
+              <Text className={styles.btnText}>确认见面</Text>
+            </Button>
+            {order.meetingType === 'offline' && !reminderSet && (
+              <Button className={styles.actionBtn} onClick={handleSetReminder}>
+                <Text className={styles.btnText}>设置提醒</Text>
+              </Button>
+            )}
+          </>
         )}
         {order.status === 'confirmed' && (
           <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleStartCompanion}>
@@ -490,6 +606,11 @@ const OrderDetailPage: React.FC = () => {
         {order.status === 'completed' && !order.review && (
           <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleRate}>
             <Text className={styles.btnText}>去评价</Text>
+          </Button>
+        )}
+        {order.status === 'completed' && order.review && (
+          <Button className={styles.actionBtn} onClick={() => setShowSettlementCard(true)}>
+            <Text className={styles.btnText}>查看结算</Text>
           </Button>
         )}
         {order.status === 'cancelled' && (
@@ -534,6 +655,99 @@ const OrderDetailPage: React.FC = () => {
               </Button>
               <Button className={`${styles.routeBtn} ${styles.confirm}`} onClick={handleSendRoute}>
                 <Text className={styles.btnText}>发送路线</Text>
+              </Button>
+            </View>
+          </View>
+        </>
+      )}
+
+      {showReminderPopup && (
+        <>
+          <View className={styles.mask} onClick={() => setShowReminderPopup(false)} />
+          <View className={styles.popup}>
+            <Text className={styles.popupTitle}>设置见面提醒</Text>
+            
+            <View className={styles.formGroup}>
+              <Text className={styles.formLabel}>提醒时间</Text>
+              <View className={styles.reminderOptions}>
+                {['开始前10分钟', '开始前30分钟', '开始前1小时', '开始前2小时'].map((option) => (
+                  <Button
+                    key={option}
+                    className={`${styles.reminderItem} ${reminderTime === option ? styles.active : ''}`}
+                    onClick={() => setReminderTime(option)}
+                  >
+                    <Text className={styles.reminderText}>{option}</Text>
+                  </Button>
+                ))}
+              </View>
+            </View>
+
+            <View className={styles.popupActions}>
+              <Button className={`${styles.popupBtn} ${styles.cancel}`} onClick={() => setShowReminderPopup(false)}>
+                <Text className={styles.btnText}>取消</Text>
+              </Button>
+              <Button className={`${styles.popupBtn} ${styles.confirm}`} onClick={handleConfirmReminder}>
+                <Text className={styles.btnText}>确认设置</Text>
+              </Button>
+            </View>
+          </View>
+        </>
+      )}
+
+      {showSettlementCard && (
+        <>
+          <View className={styles.mask} onClick={handleCloseSettlement} />
+          <View className={styles.settlementCard}>
+            <Text className={styles.settlementTitle}>订单结算</Text>
+            
+            <View className={styles.settlementInfo}>
+              <View className={styles.settlementRow}>
+                <Text className={styles.settlementLabel}>陪伴类型</Text>
+                <Text className={styles.settlementValue}>{order.type}</Text>
+              </View>
+              <View className={styles.settlementRow}>
+                <Text className={styles.settlementLabel}>陪伴时长</Text>
+                <Text className={styles.settlementValue}>{order.duration}小时</Text>
+              </View>
+              <View className={styles.settlementRow}>
+                <Text className={styles.settlementLabel}>订单预算</Text>
+                <Text className={`${styles.settlementValue} ${styles.price}`}>¥{order.budget}</Text>
+              </View>
+              {order.companion && (
+                <View className={styles.settlementRow}>
+                  <Text className={styles.settlementLabel}>陪伴者</Text>
+                  <View className={styles.partnerMini}>
+                    <Image className={styles.miniAvatar} src={order.companion.avatar} mode="aspectFill" />
+                    <Text className={styles.partnerName}>{order.companion.name}</Text>
+                  </View>
+                </View>
+              )}
+              <View className={styles.settlementRow}>
+                <Text className={styles.settlementLabel}>评价状态</Text>
+                <Text className={order.review ? styles.checked : styles.unchecked}>
+                  {order.review ? '✓ 已评价' : '✗ 未评价'}
+                </Text>
+              </View>
+            </View>
+
+            {order.review && (
+              <View className={styles.reviewSummary}>
+                <Text className={styles.reviewLabel}>我的评价</Text>
+                <View className={styles.reviewContent}>
+                  <Text className={styles.starIcon}>★{order.rating}</Text>
+                  <Text className={styles.reviewText}>{order.review}</Text>
+                </View>
+              </View>
+            )}
+
+            <View className={styles.settlementActions}>
+              {!order.review && (
+                <Button className={`${styles.settlementBtn} ${styles.primary}`} onClick={() => { handleRate(); handleCloseSettlement(); }}>
+                  <Text className={styles.btnText}>去评价</Text>
+                </Button>
+              )}
+              <Button className={styles.settlementBtn} onClick={handleCloseSettlement}>
+                <Text className={styles.btnText}>关闭</Text>
               </Button>
             </View>
           </View>
