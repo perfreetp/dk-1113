@@ -38,11 +38,19 @@ const OrderPage: React.FC = () => {
 
   const loadOrders = () => {
     const storedOrders = Taro.getStorageSync('orders') || [];
-    const allOrders = [...mockOrders, ...storedOrders];
-    const uniqueOrders = allOrders.filter((order, index, self) => 
-      index === self.findIndex((o) => o.id === order.id)
-    );
-    setOrders(uniqueOrders);
+    const storedOrderIds = new Set(storedOrders.map((o: Order) => o.id));
+    
+    const allOrders = [
+      ...mockOrders.filter(o => !storedOrderIds.has(o.id)),
+      ...storedOrders
+    ];
+    
+    const sortedOrders = allOrders.sort((a, b) => {
+      const statusOrder = { cancelled: 0, completed: 1, pending: 2, accepted: 3, confirmed: 4, inProgress: 5 };
+      return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+    });
+    
+    setOrders(sortedOrders);
   };
 
   useEffect(() => {
@@ -60,7 +68,9 @@ const OrderPage: React.FC = () => {
     };
   }, []);
 
-  const filteredOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
+  const filteredOrders = activeTab === 'all' 
+    ? orders 
+    : orders.filter(order => order.status === activeTab);
 
   const handleOrderTap = (order: Order) => {
     Taro.navigateTo({ url: `/pages/order-detail/index?id=${order.id}` });

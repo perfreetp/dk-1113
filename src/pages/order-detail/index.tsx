@@ -17,6 +17,8 @@ const OrderDetailPage: React.FC = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [showRouteCard, setShowRouteCard] = useState(false);
 
+  const currentUserId = '1';
+
   const typeIcons: Record<string, string> = {
     '散步': '🚶',
     '咖啡': '☕',
@@ -61,7 +63,7 @@ const OrderDetailPage: React.FC = () => {
 
   const loadCandidates = (orderId: string) => {
     const storedCandidates = Taro.getStorageSync(`candidates_${orderId}`) || [];
-    const availableUsers = mockUsers.filter(u => u.id !== '1');
+    const availableUsers = mockUsers.filter(u => u.id !== currentUserId);
     
     const candidateList: Candidate[] = availableUsers.map(user => {
       const stored = storedCandidates.find((c: any) => c.userId === user.id);
@@ -80,13 +82,14 @@ const OrderDetailPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const pageStack = Taro.getCurrentPages();
-    if (pageStack.length > 1) {
-      const prevPage = pageStack[pageStack.length - 2];
-      if (prevPage.route === 'pages/order/index') {
-        refreshOrder();
-      }
-    }
+    const onShow = () => {
+      refreshOrder();
+    };
+
+    Taro.onShow(onShow);
+    return () => {
+      Taro.offShow(onShow);
+    };
   }, []);
 
   if (!order) {
@@ -96,6 +99,8 @@ const OrderDetailPage: React.FC = () => {
       </View>
     );
   }
+
+  const hasAcceptedCandidate = candidates.some(c => c.accepted);
 
   const saveOrder = (updatedOrder: Order) => {
     const storedOrders = Taro.getStorageSync('orders') || [];
@@ -128,6 +133,11 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleInviteCandidate = (user: User) => {
+    if (hasAcceptedCandidate) {
+      Taro.showToast({ title: '已有陪伴者接受邀请', icon: 'none' });
+      return;
+    }
+
     const updatedCandidates = candidates.map(c => 
       c.user.id === user.id ? { ...c, invited: true } : c
     );
@@ -137,9 +147,11 @@ const OrderDetailPage: React.FC = () => {
   };
 
   const handleAcceptInvitation = (user: User) => {
-    const updatedCandidates = candidates.map(c => 
-      c.user.id === user.id ? { ...c, accepted: true } : c
-    );
+    const updatedCandidates = candidates.map(c => ({
+      ...c,
+      accepted: c.user.id === user.id,
+      invited: c.user.id === user.id ? true : c.invited
+    }));
     
     saveCandidates(order.id, updatedCandidates);
     
@@ -156,7 +168,22 @@ const OrderDetailPage: React.FC = () => {
   const handleAcceptOrder = () => {
     if (order.status !== 'pending') return;
     
-    const randomCompanion = mockUsers[Math.floor(Math.random() * mockUsers.length)];
+    const availableUsers = mockUsers.filter(u => u.id !== currentUserId);
+    
+    if (availableUsers.length === 0) {
+      Taro.showToast({ title: '暂无可用陪伴者', icon: 'none' });
+      return;
+    }
+    
+    const randomCompanion = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+    
+    const updatedCandidates = candidates.map(c => ({
+      ...c,
+      invited: true,
+      accepted: c.user.id === randomCompanion.id
+    }));
+    saveCandidates(order.id, updatedCandidates);
+    
     const updatedOrder: Order = {
       ...order,
       status: 'accepted',
@@ -164,11 +191,11 @@ const OrderDetailPage: React.FC = () => {
     };
     
     saveOrder(updatedOrder);
-    Taro.showToast({ title: '订单已接单', icon: 'success' });
+    Taro.showToast({ title: `已匹配陪伴者 ${randomCompanion.name}`, icon: 'success' });
   };
 
   const handleConfirmMeeting = () => {
-    if (order.status !== 'accepted') return;
+    if (order.status !== 'accepted' && order.status !== 'pending') return;
     
     const updatedOrder: Order = {
       ...order,
@@ -177,15 +204,18 @@ const OrderDetailPage: React.FC = () => {
     
     saveOrder(updatedOrder);
     Taro.showToast({ title: '已确认见面', icon: 'success' });
+  };
+
+  const handleStartCompanion = () => {
+    if (order.status !== 'confirmed') return;
     
-    setTimeout(() => {
-      const inProgressOrder: Order = {
-        ...order,
-        status: 'inProgress'
-      };
-      saveOrder(inProgressOrder);
-      Taro.showToast({ title: '开始计时', icon: 'success' });
-    }, 1000);
+    const updatedOrder: Order = {
+      ...order,
+      status: 'inProgress'
+    };
+    
+    saveOrder(updatedOrder);
+    Taro.showToast({ title: '开始计时', icon: 'success' });
   };
 
   const handleShareRoute = () => {
@@ -330,8 +360,12 @@ const OrderDetailPage: React.FC = () => {
                 </View>
                 {candidate.accepted ? (
                   <Text className={styles.acceptedBadge}>已接受</Text>
+                ) : hasAcceptedCandidate ? (
+                  <Text className={styles.disabledBadge}>已有人接单</Text>
                 ) : candidate.invited ? (
-                  <Text className={styles.invitedBadge}>邀请中</Text>
+                  <Button className={styles.acceptBtn} onClick={() => handleAcceptInvitation(candidate.user)}>
+                    <Text className={styles.btnText}>接受邀请</Text>
+                  </Button>
                 ) : (
                   <Button className={styles.inviteBtn} onClick={() => handleInviteCandidate(candidate.user)}>
                     <Text className={styles.btnText}>邀请</Text>
@@ -340,7 +374,7 @@ const OrderDetailPage: React.FC = () => {
               </View>
             ))}
           </View>
-          <Button className={styles.acceptBtn} onClick={handleAcceptOrder}>
+          <Button className={styles.matchBtn} onClick={handleAcceptOrder}>
             <Text className={styles.btnText}>自动匹配陪伴者</Text>
           </Button>
         </View>
@@ -429,11 +463,7 @@ const OrderDetailPage: React.FC = () => {
           </Button>
         )}
         {order.status === 'confirmed' && (
-          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={() => {
-            const updatedOrder: Order = { ...order, status: 'inProgress' };
-            saveOrder(updatedOrder);
-            Taro.showToast({ title: '开始计时', icon: 'success' });
-          }}>
+          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleStartCompanion}>
             <Text className={styles.btnText}>开始陪伴</Text>
           </Button>
         )}
