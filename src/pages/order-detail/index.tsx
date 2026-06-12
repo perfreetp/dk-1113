@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockOrders } from '@/data/mock';
-import type { Order } from '@/types';
+import { mockOrders, mockUsers } from '@/data/mock';
+import type { Order, User } from '@/types';
+import { showContactSelector } from '../emergency-contacts';
+
+interface Candidate {
+  user: User;
+  invited: boolean;
+  accepted: boolean;
+}
 
 const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [showRouteCard, setShowRouteCard] = useState(false);
 
   const typeIcons: Record<string, string> = {
     '散步': '🚶',
@@ -20,27 +29,62 @@ const OrderDetailPage: React.FC = () => {
   const statusLabels: Record<string, string> = {
     'pending': '待接单',
     'accepted': '已接单',
+    'confirmed': '见面确认',
     'inProgress': '进行中',
     'completed': '已完成',
     'cancelled': '已取消'
   };
 
-  useEffect(() => {
+  const refreshOrder = () => {
     const pages = Taro.getCurrentPages();
     const currentPage = pages[pages.length - 1];
     const options = (currentPage as any)?.options || {};
     const orderId = options.id || '1';
     
-    const foundOrder = mockOrders.find(o => o.id === orderId);
+    const storedOrders = Taro.getStorageSync('orders') || [];
+    const foundOrder = storedOrders.find((o: Order) => o.id === orderId);
+    
     if (foundOrder) {
       setOrder(foundOrder);
+      loadCandidates(foundOrder.id);
     } else {
-      const storedOrders = Taro.getStorageSync('orders') || [];
-      const storedOrder = storedOrders.find((o: Order) => o.id === orderId);
-      if (storedOrder) {
-        setOrder(storedOrder);
+      const mockOrder = mockOrders.find(o => o.id === orderId);
+      if (mockOrder) {
+        setOrder(mockOrder);
+        loadCandidates(mockOrder.id);
       } else {
         setOrder(mockOrders[0]);
+        loadCandidates(mockOrders[0].id);
+      }
+    }
+  };
+
+  const loadCandidates = (orderId: string) => {
+    const storedCandidates = Taro.getStorageSync(`candidates_${orderId}`) || [];
+    const availableUsers = mockUsers.filter(u => u.id !== '1');
+    
+    const candidateList: Candidate[] = availableUsers.map(user => {
+      const stored = storedCandidates.find((c: any) => c.userId === user.id);
+      return {
+        user,
+        invited: stored?.invited || false,
+        accepted: stored?.accepted || false
+      };
+    });
+    
+    setCandidates(candidateList);
+  };
+
+  useEffect(() => {
+    refreshOrder();
+  }, []);
+
+  useEffect(() => {
+    const pageStack = Taro.getCurrentPages();
+    if (pageStack.length > 1) {
+      const prevPage = pageStack[pageStack.length - 2];
+      if (prevPage.route === 'pages/order/index') {
+        refreshOrder();
       }
     }
   }, []);
@@ -53,22 +97,95 @@ const OrderDetailPage: React.FC = () => {
     );
   }
 
+  const saveOrder = (updatedOrder: Order) => {
+    const storedOrders = Taro.getStorageSync('orders') || [];
+    const orderIndex = storedOrders.findIndex((o: Order) => o.id === updatedOrder.id);
+    
+    if (orderIndex >= 0) {
+      storedOrders[orderIndex] = updatedOrder;
+    } else {
+      storedOrders.push(updatedOrder);
+    }
+    
+    Taro.setStorageSync('orders', storedOrders);
+    setOrder(updatedOrder);
+  };
+
+  const saveCandidates = (orderId: string, updatedCandidates: Candidate[]) => {
+    const stored = updatedCandidates.map(c => ({
+      userId: c.user.id,
+      invited: c.invited,
+      accepted: c.accepted
+    }));
+    Taro.setStorageSync(`candidates_${orderId}`, stored);
+    setCandidates(updatedCandidates);
+  };
+
   const handleContact = () => {
     if (order.companion) {
       Taro.navigateTo({ url: `/pages/chat-detail/index?id=${order.companion.id}` });
     }
   };
 
+  const handleInviteCandidate = (user: User) => {
+    const updatedCandidates = candidates.map(c => 
+      c.user.id === user.id ? { ...c, invited: true } : c
+    );
+    
+    saveCandidates(order.id, updatedCandidates);
+    Taro.showToast({ title: `已邀请 ${user.name}`, icon: 'success' });
+  };
+
+  const handleAcceptInvitation = (user: User) => {
+    const updatedCandidates = candidates.map(c => 
+      c.user.id === user.id ? { ...c, accepted: true } : c
+    );
+    
+    saveCandidates(order.id, updatedCandidates);
+    
+    const updatedOrder: Order = {
+      ...order,
+      status: 'accepted',
+      companion: user
+    };
+    
+    saveOrder(updatedOrder);
+    Taro.showToast({ title: `${user.name} 已接受邀请`, icon: 'success' });
+  };
+
+  const handleAcceptOrder = () => {
+    if (order.status !== 'pending') return;
+    
+    const randomCompanion = mockUsers[Math.floor(Math.random() * mockUsers.length)];
+    const updatedOrder: Order = {
+      ...order,
+      status: 'accepted',
+      companion: randomCompanion
+    };
+    
+    saveOrder(updatedOrder);
+    Taro.showToast({ title: '订单已接单', icon: 'success' });
+  };
+
   const handleConfirmMeeting = () => {
-    Taro.showModal({
-      title: '确认见面',
-      content: '确认已与对方见面？确认后将开始计时',
-      success: (res) => {
-        if (res.confirm) {
-          Taro.showToast({ title: '已确认见面，开始计时', icon: 'success' });
-        }
-      }
-    });
+    if (order.status !== 'accepted') return;
+    
+    const updatedOrder: Order = {
+      ...order,
+      status: 'confirmed'
+    };
+    
+    saveOrder(updatedOrder);
+    Taro.showToast({ title: '已确认见面', icon: 'success' });
+    
+    setTimeout(() => {
+      const inProgressOrder: Order = {
+        ...order,
+        status: 'inProgress'
+      };
+      saveOrder(inProgressOrder);
+      Taro.showToast({ title: '开始计时', icon: 'success' });
+    }, 1000);
   };
 
   const handleShareRoute = () => {
@@ -76,67 +193,66 @@ const OrderDetailPage: React.FC = () => {
       Taro.showToast({ title: '线上订单无需分享路线', icon: 'none' });
       return;
     }
-    
-    Taro.showModal({
-      title: '分享路线',
-      content: `起点：当前位置\n终点：${order.location}\n\n是否发送路线给对方？`,
-      confirmText: '发送',
-      success: (res) => {
-        if (res.confirm) {
-          Taro.showToast({ title: '路线已分享', icon: 'success' });
-        }
-      }
-    });
+
+    setShowRouteCard(true);
+  };
+
+  const handleSendRoute = () => {
+    setShowRouteCard(false);
+    Taro.showToast({ title: '路线已分享', icon: 'success' });
+  };
+
+  const handleStartOnlineChat = () => {
+    if (order.companion) {
+      Taro.navigateTo({ url: `/pages/chat-detail/index?id=${order.companion.id}` });
+    }
   };
 
   const handleEndOrder = () => {
+    if (order.status !== 'inProgress') return;
+    
     Taro.showModal({
       title: '结束订单',
       content: '确认结束本次陪伴？结束后可进行评价',
       success: (res) => {
         if (res.confirm) {
+          const updatedOrder: Order = {
+            ...order,
+            status: 'completed'
+          };
+          saveOrder(updatedOrder);
           Taro.showToast({ title: '订单已结束', icon: 'success' });
         }
       }
     });
   };
 
-  const handleEmergency = () => {
-    const emergencyContacts = Taro.getStorageSync('emergencyContacts') || [];
-    if (emergencyContacts.length === 0) {
-      Taro.showModal({
-        title: '紧急联系',
-        content: '您还未添加紧急联系人，请先添加',
-        confirmText: '去添加',
-        success: (res) => {
-          if (res.confirm) {
-            Taro.navigateTo({ url: '/pages/emergency-contacts/index' });
-          }
-        }
-      });
-      return;
-    }
-
-    const contactNames = emergencyContacts.map((c: any) => c.name).join('、');
+  const handleCancelOrder = () => {
     Taro.showModal({
-      title: '紧急联系',
-      content: `选择要联系的紧急联系人：\n${contactNames}`,
-      confirmText: '联系第一个',
-      cancelText: '取消',
+      title: '取消订单',
+      content: '确认取消该订单？',
       success: (res) => {
-        if (res.confirm && emergencyContacts.length > 0) {
-          const contact = emergencyContacts[0];
-          Taro.showModal({
-            title: '联系紧急联系人',
-            content: `正在拨打 ${contact.name} 的电话：${contact.phone}`,
-            showCancel: false
-          });
+        if (res.confirm) {
+          const updatedOrder: Order = {
+            ...order,
+            status: 'cancelled'
+          };
+          saveOrder(updatedOrder);
+          Taro.showToast({ title: '订单已取消', icon: 'success' });
           setTimeout(() => {
-            Taro.hideModal();
-            Taro.showToast({ title: '已通知紧急联系人', icon: 'success' });
-          }, 2000);
+            Taro.navigateBack();
+          }, 1500);
         }
       }
+    });
+  };
+
+  const handleEmergency = () => {
+    showContactSelector((contact) => {
+      Taro.showToast({ 
+        title: `已通知 ${contact.name}`, 
+        icon: 'success' 
+      });
     });
   };
 
@@ -147,6 +263,12 @@ const OrderDetailPage: React.FC = () => {
       placeholderText: '请输入评价内容',
       success: (res) => {
         if (res.confirm) {
+          const updatedOrder: Order = {
+            ...order,
+            rating: 5,
+            review: res.content || '满意'
+          };
+          saveOrder(updatedOrder);
           Taro.showToast({ title: '评价成功', icon: 'success' });
         }
       }
@@ -195,6 +317,35 @@ const OrderDetailPage: React.FC = () => {
         </View>
       </View>
 
+      {order.status === 'pending' && !order.companion && (
+        <View className={styles.section}>
+          <Text className={styles.sectionTitle}>候选陪伴者</Text>
+          <View className={styles.candidateList}>
+            {candidates.map((candidate) => (
+              <View key={candidate.user.id} className={styles.candidateItem}>
+                <Image className={styles.candidateAvatar} src={candidate.user.avatar} mode="aspectFill" />
+                <View className={styles.candidateInfo}>
+                  <Text className={styles.candidateName}>{candidate.user.name}</Text>
+                  <Text className={styles.candidateMeta}>★{candidate.user.rating} | ¥{candidate.user.hourlyRate}/小时</Text>
+                </View>
+                {candidate.accepted ? (
+                  <Text className={styles.acceptedBadge}>已接受</Text>
+                ) : candidate.invited ? (
+                  <Text className={styles.invitedBadge}>邀请中</Text>
+                ) : (
+                  <Button className={styles.inviteBtn} onClick={() => handleInviteCandidate(candidate.user)}>
+                    <Text className={styles.btnText}>邀请</Text>
+                  </Button>
+                )}
+              </View>
+            ))}
+          </View>
+          <Button className={styles.acceptBtn} onClick={handleAcceptOrder}>
+            <Text className={styles.btnText}>自动匹配陪伴者</Text>
+          </Button>
+        </View>
+      )}
+
       <View className={styles.section}>
         <Text className={styles.sectionTitle}>陪伴者信息</Text>
         {order.companion ? (
@@ -228,7 +379,7 @@ const OrderDetailPage: React.FC = () => {
             <Text className={styles.timeValue}>{order.endTime}</Text>
           </View>
         </View>
-        {order.status === 'inProgress' && (
+        {(order.status === 'inProgress' || order.status === 'confirmed') && (
           <View className={styles.countdownBox}>
             <Text className={styles.countdownText}>⏰ 距离结束还有 45 分钟</Text>
           </View>
@@ -257,15 +408,51 @@ const OrderDetailPage: React.FC = () => {
       </View>
 
       <View className={styles.footer}>
-        {order.status === 'inProgress' && (
+        {order.status === 'pending' && !order.companion && (
+          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleCancelOrder}>
+            <Text className={styles.btnText}>取消订单</Text>
+          </Button>
+        )}
+        {order.status === 'pending' && order.companion && (
           <>
-            <Button className={styles.actionBtn} onClick={handleShareRoute}>
-              <Text className={styles.btnText}>分享路线</Text>
-            </Button>
             <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleConfirmMeeting}>
               <Text className={styles.btnText}>确认见面</Text>
             </Button>
-            <Button className={styles.actionBtn} onClick={handleEmergency}>
+            <Button className={styles.actionBtn} onClick={handleCancelOrder}>
+              <Text className={styles.btnText}>取消订单</Text>
+            </Button>
+          </>
+        )}
+        {order.status === 'accepted' && (
+          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleConfirmMeeting}>
+            <Text className={styles.btnText}>确认见面</Text>
+          </Button>
+        )}
+        {order.status === 'confirmed' && (
+          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={() => {
+            const updatedOrder: Order = { ...order, status: 'inProgress' };
+            saveOrder(updatedOrder);
+            Taro.showToast({ title: '开始计时', icon: 'success' });
+          }}>
+            <Text className={styles.btnText}>开始陪伴</Text>
+          </Button>
+        )}
+        {order.status === 'inProgress' && (
+          <>
+            {order.meetingType === 'offline' && (
+              <Button className={styles.actionBtn} onClick={handleShareRoute}>
+                <Text className={styles.btnText}>分享路线</Text>
+              </Button>
+            )}
+            {order.meetingType === 'online' && (
+              <Button className={styles.actionBtn} onClick={handleStartOnlineChat}>
+                <Text className={styles.btnText}>进入聊天</Text>
+              </Button>
+            )}
+            <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleEndOrder}>
+              <Text className={styles.btnText}>结束订单</Text>
+            </Button>
+            <Button className={styles.emergencyBtn} onClick={handleEmergency}>
               <Text className={styles.btnText}>紧急联系</Text>
             </Button>
           </>
@@ -275,12 +462,53 @@ const OrderDetailPage: React.FC = () => {
             <Text className={styles.btnText}>去评价</Text>
           </Button>
         )}
-        {order.status === 'pending' && (
-          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleEndOrder}>
-            <Text className={styles.btnText}>取消订单</Text>
-          </Button>
+        {order.status === 'cancelled' && (
+          <Text className={styles.emptyText}>订单已取消</Text>
         )}
       </View>
+
+      {showRouteCard && (
+        <>
+          <View className={styles.mask} onClick={() => setShowRouteCard(false)} />
+          <View className={styles.routeCard}>
+            <Text className={styles.routeTitle}>路线分享</Text>
+            
+            <View className={styles.routeInfo}>
+              <View className={styles.routeItem}>
+                <Text className={styles.routeIcon}>📍</Text>
+                <View className={styles.routeDetail}>
+                  <Text className={styles.routeLabel}>当前位置</Text>
+                  <Text className={styles.routeValue}>我的位置</Text>
+                </View>
+              </View>
+              
+              <View className={styles.routeArrow}>↓</View>
+              
+              <View className={styles.routeItem}>
+                <Text className={styles.routeIcon}>🏁</Text>
+                <View className={styles.routeDetail}>
+                  <Text className={styles.routeLabel}>目的地</Text>
+                  <Text className={styles.routeValue}>{order.location}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View className={styles.shareInfo}>
+              <Text className={styles.shareLabel}>发送对象</Text>
+              <Text className={styles.shareValue}>{order.companion?.name || '陪伴者'}</Text>
+            </View>
+
+            <View className={styles.routeActions}>
+              <Button className={`${styles.routeBtn} ${styles.cancel}`} onClick={() => setShowRouteCard(false)}>
+                <Text className={styles.btnText}>取消</Text>
+              </Button>
+              <Button className={`${styles.routeBtn} ${styles.confirm}`} onClick={handleSendRoute}>
+                <Text className={styles.btnText}>发送路线</Text>
+              </Button>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 };

@@ -79,6 +79,31 @@ const UserDetailPage: React.FC = () => {
     });
   };
 
+  const handleBlock = () => {
+    Taro.showModal({
+      title: '拉黑用户',
+      content: `确定将 ${user.name} 加入黑名单？拉黑后对方将无法与您联系。`,
+      success: (res) => {
+        if (res.confirm) {
+          const blacklist = Taro.getStorageSync('blacklist') || [];
+          const exists = blacklist.some((item: any) => item.userId === user.id);
+          
+          if (!exists) {
+            blacklist.push({
+              userId: user.id,
+              userName: user.name,
+              userAvatar: user.avatar,
+              addedAt: new Date().toLocaleString('zh-CN')
+            });
+            Taro.setStorageSync('blacklist', blacklist);
+          }
+          
+          Taro.showToast({ title: '已加入黑名单', icon: 'success' });
+        }
+      }
+    });
+  };
+
   return (
     <View className={styles.page}>
       <View className={styles.userHeader}>
@@ -160,6 +185,9 @@ const UserDetailPage: React.FC = () => {
         </Button>
         <Button className={styles.reportBtn} onClick={handleReport}>
           <Text className={styles.btnIcon}>⚠️</Text>
+        </Button>
+        <Button className={styles.reportBtn} onClick={handleBlock}>
+          <Text className={styles.btnIcon}>🚫</Text>
         </Button>
       </View>
 

@@ -3,12 +3,44 @@ import { View, Text, Button, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 
-interface EmergencyContact {
+export interface EmergencyContact {
   id: string;
   name: string;
   phone: string;
   relationship: string;
 }
+
+export const getEmergencyContacts = (): EmergencyContact[] => {
+  return Taro.getStorageSync('emergencyContacts') || [];
+};
+
+export const showContactSelector = (onSelect: (contact: EmergencyContact) => void): void => {
+  const contacts = getEmergencyContacts();
+  
+  if (contacts.length === 0) {
+    Taro.showToast({ title: '请先添加紧急联系人', icon: 'none' });
+    return;
+  }
+
+  const contactNames = contacts.map(c => `${c.name} (${c.relationship})`);
+  
+  Taro.showActionSheet({
+    itemList: contactNames,
+    success: (res) => {
+      const selectedContact = contacts[res.tapIndex];
+      Taro.showModal({
+        title: '确认通知',
+        content: `确定向 ${selectedContact.name} 发送紧急通知吗？`,
+        success: (modalRes) => {
+          if (modalRes.confirm) {
+            onSelect(selectedContact);
+            Taro.showToast({ title: '通知已发送', icon: 'success' });
+          }
+        }
+      });
+    }
+  });
+};
 
 const EmergencyContactsPage: React.FC = () => {
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
@@ -22,7 +54,7 @@ const EmergencyContactsPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    const storedContacts = Taro.getStorageSync('emergencyContacts') || [];
+    const storedContacts = getEmergencyContacts();
     setContacts(storedContacts);
   }, []);
 

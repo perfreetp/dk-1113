@@ -13,6 +13,7 @@ const OrderPage: React.FC = () => {
     { key: 'all', label: '全部' },
     { key: 'pending', label: '待接单' },
     { key: 'accepted', label: '已接单' },
+    { key: 'confirmed', label: '见面确认' },
     { key: 'inProgress', label: '进行中' },
     { key: 'completed', label: '已完成' }
   ];
@@ -29,18 +30,34 @@ const OrderPage: React.FC = () => {
   const statusLabels: Record<string, string> = {
     'pending': '待接单',
     'accepted': '已接单',
+    'confirmed': '见面确认',
     'inProgress': '进行中',
     'completed': '已完成',
     'cancelled': '已取消'
   };
 
-  useEffect(() => {
+  const loadOrders = () => {
     const storedOrders = Taro.getStorageSync('orders') || [];
     const allOrders = [...mockOrders, ...storedOrders];
     const uniqueOrders = allOrders.filter((order, index, self) => 
       index === self.findIndex((o) => o.id === order.id)
     );
     setOrders(uniqueOrders);
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  useEffect(() => {
+    const onShow = () => {
+      loadOrders();
+    };
+
+    Taro.onShow(onShow);
+    return () => {
+      Taro.offShow(onShow);
+    };
   }, []);
 
   const filteredOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
@@ -56,6 +73,12 @@ const OrderPage: React.FC = () => {
       placeholderText: '请输入评价内容',
       success: (res) => {
         if (res.confirm) {
+          const storedOrders = Taro.getStorageSync('orders') || [];
+          const updatedOrders = storedOrders.map((o: Order) => 
+            o.id === order.id ? { ...o, rating: 5, review: res.content || '满意' } : o
+          );
+          Taro.setStorageSync('orders', updatedOrders);
+          loadOrders();
           Taro.showToast({ title: '评价成功', icon: 'success' });
         }
       }
@@ -68,9 +91,12 @@ const OrderPage: React.FC = () => {
       content: '确认取消该订单？',
       success: (res) => {
         if (res.confirm) {
-          const updatedOrders = orders.filter(o => o.id !== order.id);
-          setOrders(updatedOrders);
-          Taro.setStorageSync('orders', updatedOrders.filter(o => !mockOrders.find(mo => mo.id === o.id)));
+          const storedOrders = Taro.getStorageSync('orders') || [];
+          const updatedOrders = storedOrders.map((o: Order) => 
+            o.id === order.id ? { ...o, status: 'cancelled' } : o
+          );
+          Taro.setStorageSync('orders', updatedOrders);
+          loadOrders();
           Taro.showToast({ title: '订单已取消', icon: 'success' });
         }
       }
@@ -135,9 +161,9 @@ const OrderPage: React.FC = () => {
                   <Text className={styles.priceNum}>¥{order.budget}</Text>
                 </View>
                 <View className={styles.orderActions}>
-                  {order.status === 'inProgress' && (
+                  {(order.status === 'inProgress' || order.status === 'confirmed') && (
                     <View className={styles.countdown}>
-                      <Text className={styles.countdownText}>⏰ 距离开始还有 2 小时</Text>
+                      <Text className={styles.countdownText}>⏰ 距离结束还有 45 分钟</Text>
                     </View>
                   )}
                   {order.status === 'completed' && !order.rating && (
